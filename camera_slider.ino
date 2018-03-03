@@ -51,7 +51,7 @@ byte option_in = 0;
 byte pointer = 0;
 unsigned long val__;
 unsigned long *wsk;
-unsigned long lastUpdate;
+unsigned long camera_delay, camera_time, s1_time, s2_time, s3_time;
 
 slot_ current;
 
@@ -99,7 +99,9 @@ void loop()
   if (key != 0)
   {
     print_lcd(key);
-  } else if(mode == 4){
+  }
+  else if (mode == 4)
+  {
     work_mode();
   }
 }
@@ -165,7 +167,8 @@ void choose_slot(char key)
     return;
   }
   mode = 0;
-  EEPROM.get(sizeof(slot_) * --slot, current);++slot;
+  EEPROM.get(sizeof(slot_) * --slot, current);
+  ++slot;
   lcd.clear();
   //1st row
   lcd.setCursor(7, 0);
@@ -190,9 +193,12 @@ void choose_slot(char key)
 
 void in_slot(char key)
 {
-  if (key == 'A'){
-    EEPROM.put(sizeof(slot_) * --slot, current);++slot;
-    EEPROM.get(sizeof(slot_) * --slot, current);++slot;
+  if (key == 'A')
+  {
+    EEPROM.put(sizeof(slot_) * --slot, current);
+    ++slot;
+    EEPROM.get(sizeof(slot_) * --slot, current);
+    ++slot;
     mode = 4;
     work_mode();
     return;
@@ -433,17 +439,22 @@ void set_val(char key)
 {
   if (key == '+')
   {
-    //increment value
-    if (option_in < 2)
+    if (pointer == 0)
     {
-      if (pointer == 0 || pointer == 9)
+      //save
+      *wsk = val__;
+      //discard value
+      //exit
+      pointer = 0;
+      mode = 2;
+      change_option(0);
+      return;
+    }
+    if (option == 2)
+    {
+      //camera
+      if (pointer == 9)
       {
-        if (pointer == 0)
-        {
-          //save
-          *wsk = val__;
-        }
-        //exit
         pointer = 0;
         mode = 2;
         change_option(0);
@@ -454,42 +465,74 @@ void set_val(char key)
         change_val(1);
       }
     }
-    else
+    if (option > 2 && option < 6)
     {
-      //true / false
-      if (pointer == 0 || pointer == 2)
+      //servos
+      if (option_in == 2)
       {
-        if (pointer == 0)
+        //direction
+        if (pointer == 2)
         {
-          //save
-          *wsk = val__;
+          pointer = 0;
+          mode = 2;
+          change_option(0);
+          return;
         }
-        //exit
-        pointer = 0;
-        mode = 2;
-        change_option(0);
-        return;
+        else
+        {
+          change_flag();
+        }
       }
-      else
+      if (option_in == 1)
       {
-        change_flag();
+        //speed
+        if (pointer == 3)
+        {
+          pointer = 0;
+          mode = 2;
+          change_option(0);
+          return;
+        }
+        else
+        {
+          change_val(1);
+        }
+      }
+      if (option_in == 0)
+      {
+        //time
+        if (pointer == 9)
+        {
+          pointer = 0;
+          mode = 2;
+          change_option(0);
+          return;
+        }
+        else
+        {
+          change_val(1);
+        }
       }
     }
   }
   if (key == '-')
   {
-    if (option_in < 2)
+    if (pointer == 0)
     {
-      //decrement value
-      if (pointer == 0 || pointer == 9)
+      //save
+      *wsk = val__;
+      //discard value
+      //exit
+      pointer = 0;
+      mode = 2;
+      change_option(0);
+      return;
+    }
+    if (option == 2)
+    {
+      //camera
+      if (pointer == 9)
       {
-        if (pointer == 0)
-        {
-          //save
-          *wsk = val__;
-        }
-        //discard value
-        //exit
         pointer = 0;
         mode = 2;
         change_option(0);
@@ -500,63 +543,130 @@ void set_val(char key)
         change_val(0);
       }
     }
-    else
+    if (option > 2 && option < 6)
     {
-      //true / false
-      if (pointer == 0 || pointer == 2)
+      //servos
+      if (option_in == 2)
       {
-        if (pointer == 0)
+        //direction
+        if (pointer == 2)
         {
-          //save
-          *wsk = val__;
+          pointer = 0;
+          mode = 2;
+          change_option(0);
+          return;
         }
-        //exit
-        pointer = 0;
-        mode = 2;
-        change_option(0);
-        return;
+        else
+        {
+          change_flag();
+        }
       }
-      else
+      if (option_in == 1)
       {
-        change_flag();
+        //speed
+        if (pointer == 3)
+        {
+          pointer = 0;
+          mode = 2;
+          change_option(0);
+          return;
+        }
+        else
+        {
+          change_val(0);
+        }
+      }
+      if (option_in == 0)
+      {
+        //time
+        if (pointer == 9)
+        {
+          pointer = 0;
+          mode = 2;
+          change_option(0);
+          return;
+        }
+        else
+        {
+          change_val(0);
+        }
       }
     }
   }
   if (key == '=')
   {
     ++pointer;
-    if (option > 1 && option < 6)
+    if (option == 2)
     {
+      //camera
+      if (pointer > 9)
+      {
+        pointer = 0;
+      }
+    }
+    if (option > 2 && option < 6)
+    {
+      //servos
       if (option_in == 2)
       {
+        //direction
         if (pointer > 2)
         {
           pointer = 0;
         }
       }
-      else
+      if (option_in == 1)
       {
+        //speed
+        if (pointer > 3)
+        {
+          pointer = 0;
+        }
+      }
+      if (option_in == 0)
+      {
+        //time
         if (pointer > 9)
         {
-          pointer = 9;
+          pointer = 0;
         }
       }
     }
   }
+
   if (key == 'C')
   {
     --pointer;
-    if (option > 1 && option < 6)
+    if (option == 2)
     {
+      //camera
+      if (pointer > 9)
+      {
+        pointer = 9;
+      }
+    }
+    if (option > 2 && option < 6)
+    {
+      //servos
       if (option_in == 2)
       {
+        //direction
         if (pointer > 2)
         {
           pointer = 2;
         }
       }
-      else
+      if (option_in == 1)
       {
+        //speed
+        if (pointer > 3)
+        {
+          pointer = 3;
+        }
+      }
+      if (option_in == 0)
+      {
+        //time
         if (pointer > 9)
         {
           pointer = 9;
@@ -651,29 +761,24 @@ void set_val(char key)
       break;
     case 1:
       lcd.print(F("moving"));
-      lcd.setCursor(6, 1);
-      print_val(val__);
-      lcd.setCursor(3, 3);
-      lcd.print(convert_val(val__));
-      //print pointer
-      lcd.setCursor(2, 1);
+      lcd.setCursor(9, 1);
+      print_val_speed(val__);
+      lcd.setCursor(7, 1);
       lcd.write(1);
-      lcd.setCursor(15, 1);
-      lcd.print(F("ms"));
-      lcd.setCursor(18, 1);
+      lcd.setCursor(12, 1);
       lcd.write(2);
       switch (pointer)
       {
       case 0:
-        lcd.setCursor(2, 2);
+        lcd.setCursor(7, 2);
         lcd.write(0);
         break;
-      case 9:
-        lcd.setCursor(18, 2);
+      case 3:
+        lcd.setCursor(12, 2);
         lcd.write(0);
         break;
       default:
-        lcd.setCursor(5 + pointer, 2);
+        lcd.setCursor(8 + pointer, 2);
         lcd.write(0);
         break;
       }
@@ -704,7 +809,7 @@ void set_val(char key)
         lcd.write(0);
         break;
       case 2:
-        lcd.setCursor(11, 3);
+        lcd.setCursor(11, 2);
         lcd.write(0);
         break;
       }
@@ -725,6 +830,32 @@ void print_val(unsigned long val)
   char c;
   int c_ascii;
   for (int i = 7; i >= 0; i--)
+  {
+    c = str[i];
+    c_ascii = c;
+    if (c_ascii > 47 && c_ascii < 58)
+    {
+      lcd.print(str[i]);
+    }
+    else
+    {
+      lcd.print(F("0"));
+    }
+  }
+}
+
+void print_val_speed(unsigned long val)
+{
+  String str = String(val);
+  String tmp;
+  for (int i = str.length() - 1; i >= 0; i--)
+  {
+    tmp += str[i];
+  }
+  str = tmp;
+  char c;
+  int c_ascii;
+  for (int i = 1; i >= 0; i--)
   {
     c = str[i];
     c_ascii = c;
@@ -824,12 +955,23 @@ void change_val(bool f)
   val__ = str.toInt();
 }
 
-void work_mode(){
-  if((millis() - lastUpdate) > current.delay)  // time to update
+void work_mode()
+{
+  if ((millis() - camera_delay) > current.delay)
+  {
+    //servo 1; speed 0 - right 179 - left 90 - none
+    //0 -left 1- right
+    if (current.servo[1].direction == 0)
     {
-      lastUpdate = millis();
-      Serial.println(millis());
     }
+    camera_delay = millis();
+    digitalWrite(cam_pin, HIGH);
+    if ((millis() - camera_time) > current.time)
+    {
+      camera_time = millis();
+      digitalWrite(cam_pin, LOW);
+    }
+  }
 }
 
 void change_flag()
@@ -871,19 +1013,19 @@ char get_key()
   //    while (digitalRead(clear_btn) == LOW);
   //    delay(20);
   //  }
-//    else if (digitalRead(ok_btn) == LOW)
-//    {
-//      delay(20);
-//      key = '=';
-//      while (digitalRead(ok_btn) == LOW);
-//      delay(20);
-//    }
-//    else if (digitalRead(a_btn) == LOW)
-//    {
-//      delay(20);
-//      key = '=';
-//      while (digitalRead(a_btn) == LOW);
-//      delay(20);
+  //    else if (digitalRead(ok_btn) == LOW)
+  //    {
+  //      delay(20);
+  //      key = '=';
+  //      while (digitalRead(ok_btn) == LOW);
+  //      delay(20);
+  //    }
+  //    else if (digitalRead(a_btn) == LOW)
+  //    {
+  //      delay(20);
+  //      key = '=';
+  //      while (digitalRead(a_btn) == LOW);
+  //      delay(20);
   //  } else {
   //    key = 0;
   //  }
