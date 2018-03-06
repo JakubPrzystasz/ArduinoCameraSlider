@@ -26,7 +26,7 @@ struct slot_
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-Servo s1, s2, s3;
+Servo s[3];
 
 const char left_arrow = 126;
 const char right_arrow = 127;
@@ -69,11 +69,16 @@ void setup()
   pinMode(minus_btn, INPUT_PULLUP);
   pinMode(clear_btn, INPUT_PULLUP);
   pinMode(ok_btn, INPUT_PULLUP);
-
+  //limit sensors
+  pinMode(7, INPUT_PULLUP);
+  pinMode(8, INPUT_PULLUP);
+  pinMode(9, INPUT_PULLUP);
+  pinMode(A0, INPUT_PULLUP);
+  pinMode(A1, INPUT_PULLUP);
   //setup servos
-  s1.attach(s1_pin);
-  s2.attach(s2_pin);
-  s3.attach(s3_pin);
+  s[0].attach(s1_pin);
+  s[1].attach(s2_pin);
+  s[2].attach(s3_pin);
 
   //setup lcd
   lcd.begin();
@@ -187,7 +192,7 @@ void choose_slot(char key)
   //4nd row
   lcd.setCursor(0, 3);
   lcd.print(F("Servo #1: "));
-  lcd.print(current.servo[1].time);
+  lcd.print(current.servo[0].time);
   lcd.print(F("ms"));
 }
 
@@ -959,10 +964,57 @@ void work_mode()
 {
   if ((millis() - camera_delay) > current.delay)
   {
-    //servo 1; speed 0 - right 179 - left 90 - none
-    //0 -left 1- right
-    if (current.servo[1].direction == 0)
+    for (byte i = 0; i < 3; i++)
     {
+      //reverse value is rotating left and round values
+      if (current.servo[i].direction == 0)
+      {
+        //rotate left
+        current.servo[i].speed = 100 - current.servo[i].speed;
+        current.servo[i].speed = RoundDown(current.servo[i].speed);
+      }
+      else
+      {
+        current.servo[i].speed += 90;
+        current.servo[i].speed = RoundUp(current.servo[i].speed);
+      }
+      if (current.servo[i].speed > 89)
+      {
+        current.servo[i].speed = 89;
+      }
+      if (current.servo[i].speed < 8)
+      {
+        current.servo[i].speed = 8;
+      }
+      //servo 1; speed 0-89 left; 91 - 179 right
+      //0 -left 1- right
+      //rotate right
+      s[i].write(current.servo[i].speed);
+      bool pin_state;
+      for (byte z = 2 * i; z < (2 * i) + 2; z++)
+      {
+        switch (z)
+        {
+        default:
+          pin_state = digitalRead(6 + z);
+          break;
+        case 4:
+          pin_state = digitalRead(A0);
+          break;
+        case 5:
+          pin_state = digitalRead(A1);
+          break;
+        }
+        if (pin_state == HIGH)
+        {
+          //break if its end of track
+          mode == 0;
+          choose_slot(0);
+          return;
+        }
+      }
+      delay(current.servo[i].time);
+      s[i].write(90);
     }
     camera_delay = millis();
     digitalWrite(cam_pin, HIGH);
@@ -1054,4 +1106,16 @@ void read_slots(void)
     ++bs_slots;
   }
   busy_slots = bs_slots;
+}
+
+int RoundUp(int toRound)
+{
+  if (toRound % 10 == 0)
+    return toRound;
+  return (10 - toRound % 10) + toRound;
+}
+
+int RoundDown(int toRound)
+{
+  return toRound - toRound % 10;
 }
