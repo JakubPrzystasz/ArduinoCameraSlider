@@ -91,7 +91,7 @@ void setup()
   lcd.print(F("Powered by"));
   lcd.setCursor(4, 2);
   lcd.print(F("GrzesiuTravel"));
-  //delay(1500);
+  delay(1500);
   lcd.home();
   lcd.clear();
   read_slots();
@@ -194,6 +194,11 @@ void choose_slot(char key)
   lcd.print(F("Servo #1: "));
   lcd.print(current.servo[0].time);
   lcd.print(F("ms"));
+  slot_ slt;
+  EEPROM.get(0,slt);
+  Serial.println(slt.servo[1].speed);
+    Serial.println(slt.servo[1].direction);
+      Serial.println(slt.servo[1].time);
 }
 
 void in_slot(char key)
@@ -413,9 +418,9 @@ void change_option(char key)
     lcd.print(F("Servo #"));
     lcd.print(option - 2);
     lcd.setCursor(1, 1);
-    lcd.print(F("Time"));
-    lcd.setCursor(1, 2);
     lcd.print(F("Moving time"));
+    lcd.setCursor(1, 2);
+    lcd.print(F("Speed"));
     lcd.setCursor(1, 3);
     lcd.print(F("Direction"));
     switch (option_in)
@@ -765,7 +770,7 @@ void set_val(char key)
       }
       break;
     case 1:
-      lcd.print(F("moving"));
+      lcd.print(F("speed"));
       lcd.setCursor(9, 1);
       print_val_speed(val__);
       lcd.setCursor(7, 1);
@@ -1044,43 +1049,50 @@ char get_key()
   }
   //DEBUG
 
-  //  if (digitalRead(plus_btn) == LOW)
-  //  {
-  //    delay(20);
-  //    key = '+';
-  //    while (digitalRead(plus_btn) == LOW);
-  //    delay(20);
-  //  }
-  //  else if (digitalRead(minus_btn) == LOW)
-  //  {
-  //    delay(20);
-  //    key = '-';
-  //    while (digitalRead(minus_btn) == LOW);
-  //    delay(20);
-  //  }
-  //  else if (digitalRead(clear_btn) == LOW)
-  //  {
-  //    delay(20);
-  //    key = 'C';
-  //    while (digitalRead(clear_btn) == LOW);
-  //    delay(20);
-  //  }
-  //    else if (digitalRead(ok_btn) == LOW)
-  //    {
-  //      delay(20);
-  //      key = '=';
-  //      while (digitalRead(ok_btn) == LOW);
-  //      delay(20);
-  //    }
-  //    else if (digitalRead(a_btn) == LOW)
-  //    {
-  //      delay(20);
-  //      key = '=';
-  //      while (digitalRead(a_btn) == LOW);
-  //      delay(20);
-  //  } else {
-  //    key = 0;
-  //  }
+  // if (digitalRead(plus_btn) == LOW)
+  // {
+  //   delay(20);
+  //   key = '+';
+  //   while (digitalRead(plus_btn) == LOW)
+  //     ;
+  //   delay(20);
+  // }
+  // else if (digitalRead(minus_btn) == LOW)
+  // {
+  //   delay(20);
+  //   key = '-';
+  //   while (digitalRead(minus_btn) == LOW)
+  //     ;
+  //   delay(20);
+  // }
+  // else if (digitalRead(clear_btn) == LOW)
+  // {
+  //   delay(20);
+  //   key = 'C';
+  //   while (digitalRead(clear_btn) == LOW)
+  //     ;
+  //   delay(20);
+  // }
+  // else if (digitalRead(ok_btn) == LOW)
+  // {
+  //   delay(20);
+  //   key = '=';
+  //   while (digitalRead(ok_btn) == LOW)
+  //     ;
+  //   delay(20);
+  // }
+  // else if (digitalRead(a_btn) == LOW)
+  // {
+  //   delay(20);
+  //   key = '=';
+  //   while (digitalRead(a_btn) == LOW)
+  //     ;
+  //   delay(20);
+  // }
+  // else
+  // {
+  //   key = 0;
+  // }
   return key;
 }
 
