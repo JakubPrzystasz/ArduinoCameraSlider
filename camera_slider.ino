@@ -51,7 +51,7 @@ byte option_in = 0;
 byte pointer = 0;
 unsigned long val__;
 unsigned long *wsk;
-unsigned long camera_delay, camera_time, s1_time, s2_time, s3_time;
+unsigned long camera_delay;
 
 slot_ current;
 
@@ -91,7 +91,7 @@ void setup()
   lcd.print(F("Powered by"));
   lcd.setCursor(4, 2);
   lcd.print(F("GrzesiuTravel"));
-  //delay(1500);
+  delay(1500);
   lcd.home();
   lcd.clear();
   read_slots();
@@ -104,6 +104,11 @@ void loop()
   if (key != 0)
   {
     print_lcd(key);
+    if(key == 'C' && mode == 4){
+      mode = 1;
+      in_slot(0);
+      return;
+    }
   }
   else if (mode == 4)
   {
@@ -204,6 +209,13 @@ void in_slot(char key)
     ++slot;
     EEPROM.get(sizeof(slot_) * --slot, current);
     ++slot;
+    lcd.clear();
+    lcd.home();
+    lcd.print(F("WORK MODE"));
+    lcd.setCursor(0,1);
+    lcd.print(F("Press C to exit"));
+    lcd.setCursor(0,2);
+    lcd.print(F("Next trun: "));
     mode = 4;
     work_mode();
     return;
@@ -1014,67 +1026,72 @@ void change_val_spd(bool f)
 
 void work_mode()
 {
+  lcd.setCursor(0,3);
+  lcd.print(current.delay-(millis() - camera_delay)); 
   if ((millis() - camera_delay) > current.delay)
   {
+    lcd.clear();
+    lcd.home();
+    lcd.print(F("WORK MODE"));
+    lcd.setCursor(0,1);
+    lcd.print(F("Press C to exit"));
+    lcd.setCursor(0,2);
+    lcd.print(F("Next trun: "));
+    int ms;
+    camera_delay = millis();
     for (byte i = 0; i < 3; i++)
     {
+      int speed_value = current.srv[i].speed;
       //reverse value is rotating left and round values
       if (current.srv[i].direction == 0)
       {
         //rotate left
-        current.srv[i].speed = 100 - current.srv[i].speed;
-        current.srv[i].speed = RoundDown(current.srv[i].speed);
+        speed_value = 100 - speed_value;
+        speed_value = RoundDown(speed_value);
       }
       else
       {
-        current.srv[i].speed += 90;
-        current.srv[i].speed = RoundUp(current.srv[i].speed);
-      }
-      if (current.srv[i].speed > 89)
-      {
-        current.srv[i].speed = 89;
-      }
-      if (current.srv[i].speed < 8)
-      {
-        current.srv[i].speed = 8;
+        speed_value += 90;
+        speed_value = RoundUp(speed_value);
       }
       //servo 1; speed 0-89 left; 91 - 179 right
       //0 -left 1- right
       //rotate right
-      s[i].write(current.srv[i].speed);
-      bool pin_state;
-      for (byte z = 2 * i; z < (2 * i) + 2; z++)
-      {
-        switch (z)
-        {
-        default:
-          pin_state = digitalRead(6 + z);
-          break;
-        case 4:
-          pin_state = digitalRead(A0);
-          break;
-        case 5:
-          pin_state = digitalRead(A1);
-          break;
-        }
-        if (pin_state == HIGH)
-        {
-          //break if its end of track
+      ms = current.srv[i].time;
+      s[i].write(speed_value);
+      if (digitalRead(7) == LOW){
           mode == 0;
           choose_slot(0);
           return;
         }
-      }
-      delay(current.srv[i].time);
+        if (digitalRead(8) == LOW){
+          mode == 0;
+          choose_slot(0);
+          return;
+        }
+        if (digitalRead(9) == LOW){
+          mode == 0;
+          choose_slot(0);
+          return;
+        }
+        if (analogRead(A0) < 50){
+          mode == 0;
+          choose_slot(0);
+          return;
+        }
+        if (digitalRead(A1) < 50){
+          mode == 0;
+          choose_slot(0);
+          return;
+        }
+      delay(ms);
       s[i].write(90);
     }
-    camera_delay = millis();
+    //make photo
     digitalWrite(cam_pin, HIGH);
-    if ((millis() - camera_time) > current.time)
-    {
-      camera_time = millis();
-      digitalWrite(cam_pin, LOW);
-    }
+    ms = (int)current.time;
+    delay(ms);
+    digitalWrite(cam_pin, LOW);
   }
 }
 
@@ -1088,51 +1105,43 @@ void change_flag()
 char get_key()
 {
   char key;
-
-  //DEBUG
-  if (Serial.available() > 0)
-  {
-    key = Serial.read();
-  }
-  //DEBUG
-
-  //  if (digitalRead(plus_btn) == LOW)
-  //  {
-  //    delay(20);
-  //    key = '+';
-  //    while (digitalRead(plus_btn) == LOW);
-  //    delay(20);
-  //  }
-  //  else if (digitalRead(minus_btn) == LOW)
-  //  {
-  //    delay(20);
-  //    key = '-';
-  //    while (digitalRead(minus_btn) == LOW);
-  //    delay(20);
-  //  }
-  //  else if (digitalRead(clear_btn) == LOW)
-  //  {
-  //    delay(20);
-  //    key = 'C';
-  //    while (digitalRead(clear_btn) == LOW);
-  //    delay(20);
-  //  }
-  //    else if (digitalRead(ok_btn) == LOW)
-  //    {
-  //      delay(20);
-  //      key = '=';
-  //      while (digitalRead(ok_btn) == LOW);
-  //      delay(20);
-  //    }
-  //    else if (digitalRead(a_btn) == LOW)
-  //    {
-  //      delay(20);
-  //      key = '=';
-  //      while (digitalRead(a_btn) == LOW);
-  //      delay(20);
-  //  } else {
-  //    key = 0;
-  //  }
+    if (digitalRead(plus_btn) == LOW)
+    {
+      delay(20);
+      key = '+';
+      while (digitalRead(plus_btn) == LOW);
+      delay(20);
+    }
+    else if (digitalRead(minus_btn) == LOW)
+    {
+      delay(20);
+      key = '-';
+      while (digitalRead(minus_btn) == LOW);
+      delay(20);
+    }
+    else if (digitalRead(clear_btn) == LOW)
+    {
+      delay(20);
+      key = 'C';
+      while (digitalRead(clear_btn) == LOW);
+      delay(20);
+    }
+      else if (digitalRead(ok_btn) == LOW)
+      {
+        delay(20);
+        key = '=';
+        while (digitalRead(ok_btn) == LOW);
+        delay(20);
+      }
+      else if (digitalRead(a_btn) == LOW)
+      {
+        delay(20);
+        key = 'a';
+        while (digitalRead(a_btn) == LOW);
+        delay(20);
+    } else {
+      key = 0;
+    }
   return key;
 }
 
