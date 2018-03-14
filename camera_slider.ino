@@ -21,7 +21,7 @@ struct slot_
   //32 free slots
   unsigned long delay;
   unsigned long time;
-  servo servo[3];
+  servo srv[3];
 };
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
@@ -91,7 +91,7 @@ void setup()
   lcd.print(F("Powered by"));
   lcd.setCursor(4, 2);
   lcd.print(F("GrzesiuTravel"));
-  delay(1500);
+  //delay(1500);
   lcd.home();
   lcd.clear();
   read_slots();
@@ -192,13 +192,8 @@ void choose_slot(char key)
   //4nd row
   lcd.setCursor(0, 3);
   lcd.print(F("Servo #1: "));
-  lcd.print(current.servo[0].time);
+  lcd.print(current.srv[0].time);
   lcd.print(F("ms"));
-  slot_ slt;
-  EEPROM.get(0,slt);
-  Serial.println(slt.servo[1].speed);
-    Serial.println(slt.servo[1].direction);
-      Serial.println(slt.servo[1].time);
 }
 
 void in_slot(char key)
@@ -358,6 +353,10 @@ void change_option(char key)
     ++slot;
     option = 0;
     choose_slot(0);
+    Serial.print("Camera ");Serial.print(current.delay);Serial.print(' ');Serial.print(current.time);Serial.print('\n');
+    Serial.print("Servo#1 ");Serial.print(current.srv[0].direction);Serial.print(' ');Serial.print(current.srv[0].speed);Serial.print(' ');Serial.print(current.srv[0].time);Serial.print('\n');
+    Serial.print("Servo#2 ");Serial.print(current.srv[1].direction);Serial.print(' ');Serial.print(current.srv[1].speed);Serial.print(' ');Serial.print(current.srv[1].time);Serial.print('\n');
+    Serial.print("Servo#3 ");Serial.print(current.srv[2].direction);Serial.print(' ');Serial.print(current.srv[2].speed);Serial.print(' ');Serial.print(current.srv[2].time);Serial.print('\n');
     return;
   }
   else if (option == 1)
@@ -418,7 +417,7 @@ void change_option(char key)
     lcd.print(F("Servo #"));
     lcd.print(option - 2);
     lcd.setCursor(1, 1);
-    lcd.print(F("Moving time"));
+    lcd.print(F("Time"));
     lcd.setCursor(1, 2);
     lcd.print(F("Speed"));
     lcd.setCursor(1, 3);
@@ -428,17 +427,17 @@ void change_option(char key)
     case 0:
       lcd.setCursor(0, 1);
       lcd.print(left_arrow);
-      wsk = &current.servo[option - 2].time;
+      wsk = &current.srv[option - 3].time;
       break;
     case 1:
       lcd.setCursor(0, 2);
       lcd.print(left_arrow);
-      wsk = &current.servo[option - 2].speed;
+      wsk = &current.srv[option - 3].speed;
       break;
     case 2:
       lcd.setCursor(0, 3);
       lcd.print(left_arrow);
-      wsk = &current.servo[option - 2].direction;
+      wsk = &current.srv[option - 3].direction;
       break;
     }
   }
@@ -505,7 +504,7 @@ void set_val(char key)
         }
         else
         {
-          change_val(1);
+          change_val_spd(1);
         }
       }
       if (option_in == 0)
@@ -531,7 +530,6 @@ void set_val(char key)
     {
       //save
       *wsk = val__;
-      //discard value
       //exit
       pointer = 0;
       mode = 2;
@@ -583,7 +581,7 @@ void set_val(char key)
         }
         else
         {
-          change_val(0);
+          change_val_spd(0);
         }
       }
       if (option_in == 0)
@@ -965,6 +963,55 @@ void change_val(bool f)
   val__ = str.toInt();
 }
 
+void change_val_spd(bool f)
+{
+  String str = String(val__);
+  String tmp;
+  for (int i = str.length() - 1; i >= 0; i--)
+  {
+    tmp += str[i];
+  }
+  str = tmp;
+  tmp = "";
+  char c;
+  unsigned int c_ascii;
+  for (int i = 1; i >= 0; i--)
+  {
+    c = str[i];
+    c_ascii = c;
+    if (c_ascii > 47 && c_ascii < 58)
+    {
+      tmp += str[i];
+    }
+    else
+    {
+      tmp += "0";
+    }
+  }
+  str = tmp;
+  unsigned int x = str[pointer - 1];
+  x -= 48;
+  if (f == true)
+  {
+    x++;
+    if (x > 9)
+    {
+      x = 0;
+    }
+  }
+  else
+  {
+    x--;
+    if (x > 9)
+    {
+      x = 9;
+    }
+  }
+  x += 48;
+  str[pointer - 1] = (char)x;
+  val__ = str.toInt();
+}
+
 void work_mode()
 {
   if ((millis() - camera_delay) > current.delay)
@@ -972,29 +1019,29 @@ void work_mode()
     for (byte i = 0; i < 3; i++)
     {
       //reverse value is rotating left and round values
-      if (current.servo[i].direction == 0)
+      if (current.srv[i].direction == 0)
       {
         //rotate left
-        current.servo[i].speed = 100 - current.servo[i].speed;
-        current.servo[i].speed = RoundDown(current.servo[i].speed);
+        current.srv[i].speed = 100 - current.srv[i].speed;
+        current.srv[i].speed = RoundDown(current.srv[i].speed);
       }
       else
       {
-        current.servo[i].speed += 90;
-        current.servo[i].speed = RoundUp(current.servo[i].speed);
+        current.srv[i].speed += 90;
+        current.srv[i].speed = RoundUp(current.srv[i].speed);
       }
-      if (current.servo[i].speed > 89)
+      if (current.srv[i].speed > 89)
       {
-        current.servo[i].speed = 89;
+        current.srv[i].speed = 89;
       }
-      if (current.servo[i].speed < 8)
+      if (current.srv[i].speed < 8)
       {
-        current.servo[i].speed = 8;
+        current.srv[i].speed = 8;
       }
       //servo 1; speed 0-89 left; 91 - 179 right
       //0 -left 1- right
       //rotate right
-      s[i].write(current.servo[i].speed);
+      s[i].write(current.srv[i].speed);
       bool pin_state;
       for (byte z = 2 * i; z < (2 * i) + 2; z++)
       {
@@ -1018,7 +1065,7 @@ void work_mode()
           return;
         }
       }
-      delay(current.servo[i].time);
+      delay(current.srv[i].time);
       s[i].write(90);
     }
     camera_delay = millis();
@@ -1049,50 +1096,43 @@ char get_key()
   }
   //DEBUG
 
-  // if (digitalRead(plus_btn) == LOW)
-  // {
-  //   delay(20);
-  //   key = '+';
-  //   while (digitalRead(plus_btn) == LOW)
-  //     ;
-  //   delay(20);
-  // }
-  // else if (digitalRead(minus_btn) == LOW)
-  // {
-  //   delay(20);
-  //   key = '-';
-  //   while (digitalRead(minus_btn) == LOW)
-  //     ;
-  //   delay(20);
-  // }
-  // else if (digitalRead(clear_btn) == LOW)
-  // {
-  //   delay(20);
-  //   key = 'C';
-  //   while (digitalRead(clear_btn) == LOW)
-  //     ;
-  //   delay(20);
-  // }
-  // else if (digitalRead(ok_btn) == LOW)
-  // {
-  //   delay(20);
-  //   key = '=';
-  //   while (digitalRead(ok_btn) == LOW)
-  //     ;
-  //   delay(20);
-  // }
-  // else if (digitalRead(a_btn) == LOW)
-  // {
-  //   delay(20);
-  //   key = '=';
-  //   while (digitalRead(a_btn) == LOW)
-  //     ;
-  //   delay(20);
-  // }
-  // else
-  // {
-  //   key = 0;
-  // }
+  //  if (digitalRead(plus_btn) == LOW)
+  //  {
+  //    delay(20);
+  //    key = '+';
+  //    while (digitalRead(plus_btn) == LOW);
+  //    delay(20);
+  //  }
+  //  else if (digitalRead(minus_btn) == LOW)
+  //  {
+  //    delay(20);
+  //    key = '-';
+  //    while (digitalRead(minus_btn) == LOW);
+  //    delay(20);
+  //  }
+  //  else if (digitalRead(clear_btn) == LOW)
+  //  {
+  //    delay(20);
+  //    key = 'C';
+  //    while (digitalRead(clear_btn) == LOW);
+  //    delay(20);
+  //  }
+  //    else if (digitalRead(ok_btn) == LOW)
+  //    {
+  //      delay(20);
+  //      key = '=';
+  //      while (digitalRead(ok_btn) == LOW);
+  //      delay(20);
+  //    }
+  //    else if (digitalRead(a_btn) == LOW)
+  //    {
+  //      delay(20);
+  //      key = '=';
+  //      while (digitalRead(a_btn) == LOW);
+  //      delay(20);
+  //  } else {
+  //    key = 0;
+  //  }
   return key;
 }
 
