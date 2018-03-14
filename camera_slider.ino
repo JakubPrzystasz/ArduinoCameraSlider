@@ -59,10 +59,6 @@ byte val[10];
 
 void setup()
 {
-  //DEBUG
-  Serial.begin(9600);
-  //DEBUG
-
   //setup pins
   pinMode(cam_pin, OUTPUT);
   pinMode(plus_btn, INPUT_PULLUP);
@@ -365,10 +361,6 @@ void change_option(char key)
     ++slot;
     option = 0;
     choose_slot(0);
-    Serial.print("Camera ");Serial.print(current.delay);Serial.print(' ');Serial.print(current.time);Serial.print('\n');
-    Serial.print("Servo#1 ");Serial.print(current.srv[0].direction);Serial.print(' ');Serial.print(current.srv[0].speed);Serial.print(' ');Serial.print(current.srv[0].time);Serial.print('\n');
-    Serial.print("Servo#2 ");Serial.print(current.srv[1].direction);Serial.print(' ');Serial.print(current.srv[1].speed);Serial.print(' ');Serial.print(current.srv[1].time);Serial.print('\n');
-    Serial.print("Servo#3 ");Serial.print(current.srv[2].direction);Serial.print(' ');Serial.print(current.srv[2].speed);Serial.print(' ');Serial.print(current.srv[2].time);Serial.print('\n');
     return;
   }
   else if (option == 1)
