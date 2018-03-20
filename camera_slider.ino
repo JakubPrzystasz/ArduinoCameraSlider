@@ -33,9 +33,7 @@ const char right_arrow = 127;
 const char ok = 5;
 const char cancel = 6;
 const char up_arrow = 125;
-const byte s1_pin = 13, s2_pin = 12, s3_pin = 11, cam_pin = 10,
-           plus_btn = 2, minus_btn = 3, clear_btn = 4, ok_btn = 5, a_btn = 6;
-
+const byte s1_pin = 13, s2_pin = 12, s3_pin = 11, cam_pin = 10;
 /*
   0 - main
   1 - in slot
@@ -61,10 +59,11 @@ void setup()
 {
   //setup pins
   pinMode(cam_pin, OUTPUT);
-  pinMode(plus_btn, INPUT_PULLUP);
-  pinMode(minus_btn, INPUT_PULLUP);
-  pinMode(clear_btn, INPUT_PULLUP);
-  pinMode(ok_btn, INPUT_PULLUP);
+  //buttons
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP);
   //limit sensors
   pinMode(7, INPUT_PULLUP);
   pinMode(8, INPUT_PULLUP);
@@ -199,23 +198,6 @@ void choose_slot(char key)
 
 void in_slot(char key)
 {
-  if (key == 'A')
-  {
-    EEPROM.put(sizeof(slot_) * --slot, current);
-    ++slot;
-    EEPROM.get(sizeof(slot_) * --slot, current);
-    ++slot;
-    lcd.clear();
-    lcd.home();
-    lcd.print(F("WORK MODE"));
-    lcd.setCursor(0,1);
-    lcd.print(F("Press C to exit"));
-    lcd.setCursor(0,2);
-    lcd.print(F("Next trun: "));
-    mode = 4;
-    work_mode();
-    return;
-  }
   if (key == 'C')
   {
     option = 0;
@@ -225,14 +207,33 @@ void in_slot(char key)
   }
   if (key == '=')
   {
-    mode = 2;
-    change_option(0);
-    return;
+    if(option == 6){
+      //go to work mode
+      EEPROM.put(sizeof(slot_) * --slot, current);
+      ++slot;
+      EEPROM.get(sizeof(slot_) * --slot, current);
+      ++slot;
+      camera_delay = millis();
+      lcd.clear();
+      lcd.setCursor(6,0);
+      lcd.print(F("WORK MODE"));
+      lcd.setCursor(0,1);
+      lcd.print(F("Press C to exit"));
+      lcd.setCursor(0,2);
+      lcd.print(F("Next trun in: "));
+      mode = 4;
+      work_mode();
+      return;
+    } else {
+      mode = 2;
+      change_option(0);
+      return; 
+    }
   }
   if (key == '+')
   {
     ++option;
-    if (option > 5)
+    if (option > 6)
     {
       option = 0;
     }
@@ -240,9 +241,9 @@ void in_slot(char key)
   if (key == '-')
   {
     --option;
-    if (option > 5)
+    if (option > 6)
     {
-      option = 5;
+      option = 6;
     }
   }
   mode = 1;
@@ -297,6 +298,12 @@ void in_slot(char key)
     //servo 3
     lcd.setCursor(10, 3);
     lcd.print(left_arrow);
+  }
+  else if (option == 6)
+  {
+    //servo 3
+    lcd.setCursor(9, 2);
+    lcd.print(F("*"));
   }
 }
 
@@ -1019,16 +1026,17 @@ void change_val_spd(bool f)
 void work_mode()
 {
   lcd.setCursor(0,3);
-  lcd.print(current.delay-(millis() - camera_delay)); 
+  print_val(current.delay-(millis() - camera_delay));
+  lcd.print(F("ms"));
   if ((millis() - camera_delay) > current.delay)
   {
     lcd.clear();
-    lcd.home();
+    lcd.setCursor(6,0);
     lcd.print(F("WORK MODE"));
     lcd.setCursor(0,1);
     lcd.print(F("Press C to exit"));
     lcd.setCursor(0,2);
-    lcd.print(F("Next trun: "));
+    lcd.print(F("Next trun in: "));
     int ms;
     camera_delay = millis();
     for (byte i = 0; i < 3; i++)
@@ -1052,6 +1060,7 @@ void work_mode()
       ms = current.srv[i].time;
       s[i].write(speed_value);
       if (digitalRead(7) == LOW){
+          
           mode == 0;
           choose_slot(0);
           return;
@@ -1066,12 +1075,12 @@ void work_mode()
           choose_slot(0);
           return;
         }
-        if (analogRead(A0) < 50){
+        if (analogRead(A0) < 250){
           mode == 0;
           choose_slot(0);
           return;
         }
-        if (digitalRead(A1) < 50){
+        if (analogRead(A1) < 250){
           mode == 0;
           choose_slot(0);
           return;
@@ -1092,49 +1101,6 @@ void change_flag()
   bool x;
   x = (bool)val__;
   val__ = !val__;
-}
-
-char get_key()
-{
-  char key;
-    if (digitalRead(plus_btn) == LOW)
-    {
-      delay(20);
-      key = '+';
-      while (digitalRead(plus_btn) == LOW);
-      delay(20);
-    }
-    else if (digitalRead(minus_btn) == LOW)
-    {
-      delay(20);
-      key = '-';
-      while (digitalRead(minus_btn) == LOW);
-      delay(20);
-    }
-    else if (digitalRead(clear_btn) == LOW)
-    {
-      delay(20);
-      key = 'C';
-      while (digitalRead(clear_btn) == LOW);
-      delay(20);
-    }
-      else if (digitalRead(ok_btn) == LOW)
-      {
-        delay(20);
-        key = '=';
-        while (digitalRead(ok_btn) == LOW);
-        delay(20);
-      }
-      else if (digitalRead(a_btn) == LOW)
-      {
-        delay(20);
-        key = 'a';
-        while (digitalRead(a_btn) == LOW);
-        delay(20);
-    } else {
-      key = 0;
-    }
-  return key;
 }
 
 void read_slots(void)
@@ -1171,4 +1137,53 @@ int RoundUp(int toRound)
 int RoundDown(int toRound)
 {
   return toRound - toRound % 10;
+}
+
+char get_key()
+{
+  char key;
+  //0 - = {2}
+  //1 - C {3}
+  //2 - + {4}
+  //3 - - {5}
+  if(digitalRead(2) == LOW){
+    delay(30);
+    while(digitalRead(2) == LOW){
+      
+    }
+    key = '=';
+    delay(30);
+    return key;
+  }
+  if(digitalRead(3) == LOW){
+    delay(30);
+    while(digitalRead(3) == LOW){
+      
+    }
+    key = 'C';
+    delay(30);
+        return key;
+  }
+  if(digitalRead(4) == LOW){
+    delay(30);
+    while(digitalRead(4) == LOW){
+      
+    }
+    key = '+';
+    delay(30);
+      return key;
+  }
+  if(digitalRead(5) == LOW){
+    delay(30);
+    while(digitalRead(5) == LOW){
+      
+    }
+    key = '-';
+    delay(30);
+    return key;
+  }
+  if(digitalRead(2) != LOW && digitalRead(3) != LOW && digitalRead(4) != LOW && digitalRead(5) != LOW){
+    key = 0;
+    return key;
+  }
 }
