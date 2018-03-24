@@ -1,2 +1,1 @@
-# ArduinoCameraSlider
-Camera Slider
+# Arduino_Camera_Slider
